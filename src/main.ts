@@ -48,7 +48,9 @@ canvas.addEventListener("pointerdown", (event) => {
 });
 
 canvas.addEventListener("pointermove", (event) => {
-  if (!is_drawing) return;
+  if (!is_drawing){
+    return;
+  }
 
   const rect = canvas.getBoundingClientRect();
 
