@@ -35,8 +35,14 @@ type Stroke = {
 //list containing all of the past completed strokes
 const strokes: Stroke[] = [];
 
+// list containing undone strokes
+const undone_strokes: Stroke[] = [];
+
 //define the stroke activly being drawn
 let active_stroke: Stroke | null = null;
+
+// track the pointer responsible for the active stroke
+let active_pointer_id: number | null = null;
 
 //helper function to get a points x and y cordinates
 function get_point(event: PointerEvent): Point {
@@ -86,6 +92,43 @@ function redraw(): void {
   }
 }
 
+// create undo/redo buttons
+const undo_button = document.createElement("button");
+undo_button.textContent = "Undo";
+app.appendChild(undo_button);
+
+const redo_button = document.createElement("button");
+redo_button.textContent = "Redo";
+app.appendChild(redo_button);
+
+// disable buttons when no actions are available
+function update_history_buttons(): void {
+  undo_button.disabled = strokes.length === 0;
+  redo_button.disabled = undone_strokes.length === 0;
+}
+
+// undo the most recent completed stroke
+undo_button.addEventListener("click", () => {
+  const last_stroke = strokes.pop();
+
+  if (last_stroke) {
+    undone_strokes.push(last_stroke);
+    redraw();
+    update_history_buttons();
+  }
+});
+
+// redo the most recent undone stroke
+redo_button.addEventListener("click", () => {
+  const last_undone = undone_strokes.pop();
+
+  if (last_undone) {
+    strokes.push(last_undone);
+    redraw();
+    update_history_buttons();
+  }
+});
+
 canvas.addEventListener("pointerdown", (event) => {
   if (active_stroke) {
     return;
@@ -98,12 +141,13 @@ canvas.addEventListener("pointerdown", (event) => {
     width: line_width,
   };
 
+  active_pointer_id = event.pointerId;
   canvas.setPointerCapture(event.pointerId);
   redraw();
 });
 
 canvas.addEventListener("pointermove", (event) => {
-  if (!active_stroke) {
+  if (!active_stroke || event.pointerId !== active_pointer_id) {
     return;
   }
 
@@ -111,12 +155,42 @@ canvas.addEventListener("pointermove", (event) => {
   redraw();
 });
 
-canvas.addEventListener("pointerup", () => {
-  if (!active_stroke) {
+canvas.addEventListener("pointerup", (event) => {
+  if (!active_stroke || event.pointerId !== active_pointer_id) {
     return;
   }
 
   strokes.push(active_stroke);
   active_stroke = null;
+  active_pointer_id = null;
+
+  // new committed drawing clears redo history
+  undone_strokes.length = 0;
+
+  redraw();
+  update_history_buttons();
+});
+
+// discard cancelled strokes without changing history
+canvas.addEventListener("pointercancel", (event) => {
+  if (event.pointerId !== active_pointer_id) {
+    return;
+  }
+
+  active_stroke = null;
+  active_pointer_id = null;
   redraw();
 });
+
+// handle unexpected loss of pointer capture
+canvas.addEventListener("lostpointercapture", (event) => {
+  if (event.pointerId !== active_pointer_id) {
+    return;
+  }
+
+  active_stroke = null;
+  active_pointer_id = null;
+  redraw();
+});
+
+update_history_buttons();
