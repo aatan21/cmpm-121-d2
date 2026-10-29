@@ -48,7 +48,7 @@ canvas.addEventListener("pointerdown", (event) => {
 });
 
 canvas.addEventListener("pointermove", (event) => {
-  if (!is_drawing){
+  if (!is_drawing) {
     return;
   }
 
