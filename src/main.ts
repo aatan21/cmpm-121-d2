@@ -26,48 +26,97 @@ type Point = {
   y: number;
 };
 
-let is_drawing = false;
-let current_stroke: Point[] = [];
+//create stroke type
+type Stroke = {
+  points: Point[];
+  width: number;
+};
 
-canvas.addEventListener("pointerdown", (event) => {
-  is_drawing = true;
+//list containing all of the past completed strokes
+const strokes: Stroke[] = [];
 
+//define the stroke activly being drawn
+let active_stroke: Stroke | null = null;
+
+//helper function to get a points x and y cordinates
+function get_point(event: PointerEvent): Point {
   const rect = canvas.getBoundingClientRect();
 
-  const point = {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top,
+  return {
+    x: (event.clientX - rect.left) * canvas_width / rect.width,
+    y: (event.clientY - rect.top) * canvas_height / rect.height,
   };
+}
 
-  current_stroke = [point];
-
+//Draws a stroke from within the stroke list
+function draw_stroke(stroke: Stroke): void {
   context.beginPath();
-  context.moveTo(point.x, point.y);
+  context.lineWidth = stroke.width;
+  context.lineCap = "round";
+  context.lineJoin = "round";
 
-  canvas.setPointerCapture(event.pointerId);
-});
+  const first_point = stroke.points[0];
 
-canvas.addEventListener("pointermove", (event) => {
-  if (!is_drawing) {
+  if (!first_point) {
     return;
   }
 
-  const rect = canvas.getBoundingClientRect();
+  context.moveTo(first_point.x, first_point.y);
 
-  const point = {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top,
+  for (const point of stroke.points.slice(1)) {
+    context.lineTo(point.x, point.y);
+  }
+
+  if (stroke.points.length == 1) {
+    context.lineTo(first_point.x, first_point.y);
+  }
+  context.stroke();
+}
+
+//draws all strokes within the stroke list and any active strokes
+function redraw(): void {
+  context.clearRect(0, 0, canvas_width, canvas_height);
+
+  for (const stroke of strokes) {
+    draw_stroke(stroke);
+  }
+
+  if (active_stroke) {
+    draw_stroke(active_stroke);
+  }
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  if (active_stroke) {
+    return;
+  }
+
+  event.preventDefault();
+
+  active_stroke = {
+    points: [get_point(event)],
+    width: line_width,
   };
 
-  current_stroke.push(point);
+  canvas.setPointerCapture(event.pointerId);
+  redraw();
+});
 
-  context.lineWidth = line_width;
-  context.lineCap = "round";
-  context.lineJoin = "round";
-  context.lineTo(point.x, point.y);
-  context.stroke();
+canvas.addEventListener("pointermove", (event) => {
+  if (!active_stroke) {
+    return;
+  }
+
+  active_stroke.points.push(get_point(event));
+  redraw();
 });
 
 canvas.addEventListener("pointerup", () => {
-  is_drawing = false;
+  if (!active_stroke) {
+    return;
+  }
+
+  strokes.push(active_stroke);
+  active_stroke = null;
+  redraw();
 });
