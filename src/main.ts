@@ -7,7 +7,6 @@ app.append(heading);
 //define global variables
 const canvas_width = 800;
 const canvas_height = 600;
-const line_width = 3;
 
 //create and append canvas
 const canvas = document.createElement("canvas");
@@ -28,15 +27,72 @@ type Point = {
 
 //create stroke type
 type Stroke = {
+  type: "stroke";
   points: Point[];
   width: number;
 };
 
-//list containing all of the past completed strokes
-const strokes: Stroke[] = [];
+//create sticker type
+type Sticker = {
+  type: "sticker";
+  x: number;
+  y: number;
+  symbol: string;
+  size: number;
+};
 
+type draw_command = Stroke | Sticker;
+
+//create marker type
+type Marker = {
+  type: "marker";
+  name: string;
+  width: number;
+};
+
+//create type to hold differnt stickers
+type Sticker_tool = {
+  type: "sticker";
+  name: string;
+  symbol: string;
+  size: number;
+};
+
+//create tool defintion
+type tool = Marker | Sticker_tool;
+
+//create different markers and stickers
+const tools: tool[] = [
+  {
+    type: "marker",
+    name: "thin_marker",
+    width: 2,
+  },
+  {
+    type: "marker",
+    name: "medium_marker",
+    width: 4,
+  },
+  {
+    type: "marker",
+    name: "thick_marker",
+    width: 6,
+  },
+  {
+    type: "sticker",
+    name: "heart",
+    symbol: "❤️",
+    size: 10,
+  },
+];
+
+//create tracker for the current selected marker, starting by default with the first marker
+const selected_tool: tool = tools[0]!;
+
+//list containing all of the past completed strokes
+const document_commands: draw_command[] = [];
 // list containing undone strokes
-const undone_strokes: Stroke[] = [];
+const undo_commands: draw_command[] = [];
 
 //define the stroke activly being drawn
 let active_stroke: Stroke | null = null;
@@ -55,40 +111,47 @@ function get_point(event: PointerEvent): Point {
 }
 
 //Draws a stroke from within the stroke list
-function draw_stroke(stroke: Stroke): void {
-  context.beginPath();
-  context.lineWidth = stroke.width;
-  context.lineCap = "round";
-  context.lineJoin = "round";
+function draw_command(command: draw_command): void {
+  if (command.type == "stroke") {
+    context.beginPath();
+    context.lineWidth = command.width;
+    context.lineCap = "round";
+    context.lineJoin = "round";
 
-  const first_point = stroke.points[0];
+    const first_point = command.points[0];
 
-  if (!first_point) {
-    return;
+    if (!first_point) {
+      return;
+    }
+
+    context.moveTo(first_point.x, first_point.y);
+
+    for (const point of command.points.slice(1)) {
+      context.lineTo(point.x, point.y);
+    }
+
+    if (command.points.length == 1) {
+      context.lineTo(first_point.x, first_point.y);
+    }
+    context.stroke();
+  } else if (command.type == "sticker") {
+    context.font = `${command.size}px serif`;
+    context.textAlign = "center",
+      context.textBaseline = "middle",
+      context.fillText(command.symbol, command.x, command.y);
   }
-
-  context.moveTo(first_point.x, first_point.y);
-
-  for (const point of stroke.points.slice(1)) {
-    context.lineTo(point.x, point.y);
-  }
-
-  if (stroke.points.length == 1) {
-    context.lineTo(first_point.x, first_point.y);
-  }
-  context.stroke();
 }
 
 //draws all strokes within the stroke list and any active strokes
 function redraw(): void {
   context.clearRect(0, 0, canvas_width, canvas_height);
 
-  for (const stroke of strokes) {
-    draw_stroke(stroke);
+  for (const command of document_commands) {
+    draw_command(command);
   }
 
   if (active_stroke) {
-    draw_stroke(active_stroke);
+    draw_command(active_stroke);
   }
 }
 
@@ -103,16 +166,16 @@ app.appendChild(redo_button);
 
 // disable buttons when no actions are available
 function update_history_buttons(): void {
-  undo_button.disabled = strokes.length === 0;
-  redo_button.disabled = undone_strokes.length === 0;
+  undo_button.disabled = document_commands.length === 0;
+  redo_button.disabled = undo_commands.length === 0;
 }
 
 // undo the most recent completed stroke
 undo_button.addEventListener("click", () => {
-  const last_stroke = strokes.pop();
+  const last_command = document_commands.pop();
 
-  if (last_stroke) {
-    undone_strokes.push(last_stroke);
+  if (last_command) {
+    undo_commands.push(last_command);
     redraw();
     update_history_buttons();
   }
@@ -120,10 +183,10 @@ undo_button.addEventListener("click", () => {
 
 // redo the most recent undone stroke
 redo_button.addEventListener("click", () => {
-  const last_undone = undone_strokes.pop();
+  const last_command = undo_commands.pop();
 
-  if (last_undone) {
-    strokes.push(last_undone);
+  if (last_command) {
+    document_commands.push(last_command);
     redraw();
     update_history_buttons();
   }
@@ -136,9 +199,29 @@ canvas.addEventListener("pointerdown", (event) => {
 
   event.preventDefault();
 
+  const point = get_point(event);
+
+  if (selected_tool.type == "sticker") {
+    const sticker: Sticker = {
+      type: "sticker",
+      x: point.x,
+      y: point.y,
+      symbol: selected_tool.symbol,
+      size: selected_tool.size,
+    };
+
+    document_commands.push(sticker);
+    undo_commands.length = 0;
+
+    redraw();
+    update_history_buttons();
+    return;
+  }
+
   active_stroke = {
-    points: [get_point(event)],
-    width: line_width,
+    type: "stroke",
+    points: [point],
+    width: selected_tool.width,
   };
 
   active_pointer_id = event.pointerId;
@@ -160,12 +243,12 @@ canvas.addEventListener("pointerup", (event) => {
     return;
   }
 
-  strokes.push(active_stroke);
+  document_commands.push(active_stroke);
   active_stroke = null;
   active_pointer_id = null;
 
   // new committed drawing clears redo history
-  undone_strokes.length = 0;
+  undo_commands.length = 0;
 
   redraw();
   update_history_buttons();
