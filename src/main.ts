@@ -199,48 +199,66 @@ function get_point(event: PointerEvent): Point {
   };
 }
 
-//Draws a stroke from within the stroke list
-function draw_command(command: draw_command): void {
-  if (command.type == "stroke") {
-    context.beginPath();
-    context.lineWidth = command.width;
-    context.lineCap = "round";
-    context.lineJoin = "round";
+// Draw a command onto a supplied canvas context
+function draw_command(
+  ctx: CanvasRenderingContext2D,
+  command: draw_command,
+): void {
+  // Save the context's current drawing settings
+  ctx.save();
 
+  if (command.type == "stroke") {
     const first_point = command.points[0];
 
-    if (!first_point) {
-      return;
-    }
+    if (first_point) {
+      ctx.beginPath();
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = command.width;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
 
-    context.moveTo(first_point.x, first_point.y);
+      ctx.moveTo(first_point.x, first_point.y);
 
-    for (const point of command.points.slice(1)) {
-      context.lineTo(point.x, point.y);
-    }
+      for (const point of command.points.slice(1)) {
+        ctx.lineTo(point.x, point.y);
+      }
 
-    if (command.points.length == 1) {
-      context.lineTo(first_point.x, first_point.y);
+      if (command.points.length == 1) {
+        ctx.lineTo(first_point.x, first_point.y);
+      }
+
+      ctx.stroke();
     }
-    context.stroke();
   } else if (command.type == "sticker") {
-    context.font = `${command.size}px serif`;
-    context.textAlign = "center",
-      context.textBaseline = "middle",
-      context.fillText(command.symbol, command.x, command.y);
+    ctx.font = `${command.size}px serif`;
+    ctx.fillStyle = "black";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(command.symbol, command.x, command.y);
+  }
+
+  ctx.restore();
+}
+
+// Render a list of saved drawing commands onto any canvas context
+function render_commands(
+  ctx: CanvasRenderingContext2D,
+  commands: readonly draw_command[],
+): void {
+  for (const command of commands) {
+    draw_command(ctx, command);
   }
 }
 
-//draws all strokes within the stroke list and any active strokes
+// Redraw the interactive canvas
 function redraw(): void {
   context.clearRect(0, 0, canvas_width, canvas_height);
 
-  for (const command of document_commands) {
-    draw_command(command);
-  }
+  render_commands(context, document_commands);
 
+  // Draw the temporary stroke separately
   if (active_stroke) {
-    draw_command(active_stroke);
+    draw_command(context, active_stroke);
   }
 }
 
@@ -345,6 +363,17 @@ canvas.addEventListener("pointerup", (event) => {
 
 // discard cancelled strokes without changing history
 canvas.addEventListener("pointercancel", (event) => {
+  if (event.pointerId !== active_pointer_id) {
+    return;
+  }
+
+  active_stroke = null;
+  active_pointer_id = null;
+  redraw();
+});
+
+// Discard unfinished strokes if pointer capture is unexpectedly lost
+canvas.addEventListener("lostpointercapture", (event) => {
   if (event.pointerId !== active_pointer_id) {
     return;
   }
