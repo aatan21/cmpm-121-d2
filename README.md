@@ -1,5 +1,7 @@
 # D2 Visual Drawing App
 
+[Open Visual Drawing App](https://aatan21.github.io/cmpm-121-d2/)
+
 ## How to Use
 
 ### Drawing
