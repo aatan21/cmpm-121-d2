@@ -1,6 +1,25 @@
-# D2 starter
+# D2 Visual Drawing App
 
-A minimal TypeScript/Vite browser project with Deno checks and GitHub Pages deployment.
+## How to Use
+
+### Drawing
+
+-click on any of the marker tools on the top of the canvas to select a marker width
+-Click anywhere on the screen to start drawing
+
+### Sticker
+
+-Select a premade sticker on the top of the canvas then click anywhere to draw the sticker
+-Create your own by typing the name followed by the symbol and then pressing Create Tool button
+-You can then select your created sticker on the top of the canvas
+
+### Undo
+
+-Click the undo button to undo the most recent drawn stroke
+
+### Redo
+
+-Click the redo button to restore the most recent undo button press
 
 ## Credits
 
