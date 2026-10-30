@@ -87,7 +87,38 @@ const tools: tool[] = [
 ];
 
 //create tracker for the current selected marker, starting by default with the first marker
-const selected_tool: tool = tools[0]!;
+let selected_tool: tool = tools[0]!;
+
+//create tool select
+const tool_select = document.createElement("div");
+tool_select.style.display = "flex";
+tool_select.style.display = "8px";
+tool_select.style.marginBottom = "10px";
+app.insertBefore(tool_select, canvas);
+
+for (const tool of tools) {
+  const button = document.createElement("button");
+
+  button.textContent = tool.name;
+
+  button.addEventListener("click", () => {
+    selected_tool = tool;
+    update_tools();
+  });
+
+  tool_select.appendChild(button);
+}
+
+//highlight button selected
+function update_tools(): void {
+  const buttons = tool_select.querySelectorAll("button");
+
+  buttons.forEach((button, index) => {
+    button.style.backgroundColor = tools[index] === selected_tool
+      ? "#bde0fe"
+      : "white";
+  });
+}
 
 //list containing all of the past completed strokes
 const document_commands: draw_command[] = [];
