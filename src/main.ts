@@ -15,6 +15,7 @@ canvas.height = canvas_height;
 canvas.style.border = "2px solid black";
 canvas.style.backgroundColor = "white";
 canvas.style.display = "block";
+canvas.style.touchAction = "none";
 app.appendChild(canvas);
 
 const context = canvas.getContext("2d")!;
@@ -287,17 +288,6 @@ canvas.addEventListener("pointerup", (event) => {
 
 // discard cancelled strokes without changing history
 canvas.addEventListener("pointercancel", (event) => {
-  if (event.pointerId !== active_pointer_id) {
-    return;
-  }
-
-  active_stroke = null;
-  active_pointer_id = null;
-  redraw();
-});
-
-// handle unexpected loss of pointer capture
-canvas.addEventListener("lostpointercapture", (event) => {
   if (event.pointerId !== active_pointer_id) {
     return;
   }
