@@ -66,24 +66,36 @@ type tool = Marker | Sticker_tool;
 const tools: tool[] = [
   {
     type: "marker",
-    name: "thin_marker",
+    name: "Thin Marker",
     width: 2,
   },
   {
     type: "marker",
-    name: "medium_marker",
+    name: "Medium Marker",
     width: 4,
   },
   {
     type: "marker",
-    name: "thick_marker",
-    width: 6,
+    name: "Thick Marker",
+    width: 10,
   },
   {
     type: "sticker",
     name: "heart",
     symbol: "❤️",
-    size: 10,
+    size: 30,
+  },
+  {
+    type: "sticker",
+    name: "smile",
+    symbol: "😀",
+    size: 30,
+  },
+  {
+    type: "sticker",
+    name: "star",
+    symbol: "🌟",
+    size: 30,
   },
 ];
 
@@ -153,7 +165,7 @@ function create_tool(): void {
     type: "sticker",
     name: name,
     symbol: symbol,
-    size: 40,
+    size: 30,
   };
 
   tools.push(new_tool);
