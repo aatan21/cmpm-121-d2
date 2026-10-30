@@ -97,7 +97,8 @@ tool_select.style.display = "8px";
 tool_select.style.marginBottom = "10px";
 app.insertBefore(tool_select, canvas);
 
-for (const tool of tools) {
+//create tool button
+function add_tool_button(tool: tool): void {
   const button = document.createElement("button");
 
   button.textContent = tool.name;
@@ -110,6 +111,11 @@ for (const tool of tools) {
   tool_select.appendChild(button);
 }
 
+//add pre-fab tool buttons
+for (const tool of tools) {
+  add_tool_button(tool);
+}
+
 //highlight button selected
 function update_tools(): void {
   const buttons = tool_select.querySelectorAll("button");
@@ -120,6 +126,45 @@ function update_tools(): void {
       : "white";
   });
 }
+
+//create UI for custom made user tools
+const tool_name_input = document.createElement("input");
+tool_name_input.ariaPlaceholder = "Tool name";
+
+const tool_symbol_input = document.createElement("input");
+tool_symbol_input.ariaPlaceholder = "Emoji/Text";
+
+const create_tool_button = document.createElement("button");
+create_tool_button.textContent = "Create Tool";
+
+app.insertBefore(tool_name_input, canvas);
+app.insertBefore(tool_symbol_input, canvas);
+app.insertBefore(create_tool_button, canvas);
+
+function create_tool(): void {
+  const name = tool_name_input.value.trim();
+  const symbol = tool_symbol_input.value.trim();
+
+  if (name === "" || symbol == "") {
+    return;
+  }
+
+  const new_tool: Sticker_tool = {
+    type: "sticker",
+    name: name,
+    symbol: symbol,
+    size: 40,
+  };
+
+  tools.push(new_tool);
+
+  tool_name_input.value = "";
+  tool_symbol_input.value = "";
+
+  add_tool_button(new_tool);
+}
+
+create_tool_button.addEventListener("click", create_tool);
 
 //list containing all of the past completed strokes
 const document_commands: draw_command[] = [];
