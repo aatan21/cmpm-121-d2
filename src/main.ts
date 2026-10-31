@@ -262,6 +262,64 @@ function redraw(): void {
   }
 }
 
+// Create PNG export button
+const export_button = document.createElement("button");
+export_button.textContent = "Export PNG";
+app.appendChild(export_button);
+
+// Export the current document at twice the canvas resolution
+function export_png(): void {
+  const scale = 2;
+
+  // Create a separate offscreen canvas
+  const export_canvas = document.createElement("canvas");
+  export_canvas.width = canvas_width * scale;
+  export_canvas.height = canvas_height * scale;
+
+  const export_context = export_canvas.getContext("2d");
+
+  if (!export_context) {
+    return;
+  }
+
+  export_context.fillStyle = "white";
+  export_context.fillRect(
+    0,
+    0,
+    export_canvas.width,
+    export_canvas.height,
+  );
+
+  export_context.save();
+  export_context.scale(scale, scale);
+
+  render_commands(export_context, document_commands);
+
+  export_context.restore();
+
+  export_canvas.toBlob((blob) => {
+    if (!blob) {
+      console.error("PNG export failed");
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "drawing.png";
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, "image/png");
+}
+
+// Download the PNG when the button is clicked
+export_button.addEventListener("click", export_png);
+
 // create undo/redo buttons
 const undo_button = document.createElement("button");
 undo_button.textContent = "Undo";
