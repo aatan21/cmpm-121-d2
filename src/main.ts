@@ -344,26 +344,57 @@ function update_history_buttons(): void {
   redo_button.disabled = undo_commands.length === 0;
 }
 
-// undo the most recent completed stroke
-undo_button.addEventListener("click", () => {
+// Refresh the drawing and history buttons
+function refresh_display(): void {
+  redraw();
+  update_history_buttons();
+}
+
+// Add a completed drawing command to the document
+function commit_command(command: draw_command): void {
+  document_commands.push(command);
+
+  undo_commands.length = 0;
+
+  refresh_display();
+}
+
+// Undo the most recent drawing command
+function undo_command(): void {
   const last_command = document_commands.pop();
 
   if (last_command) {
     undo_commands.push(last_command);
-    redraw();
-    update_history_buttons();
+    refresh_display();
   }
-});
+}
 
-// redo the most recent undone stroke
-redo_button.addEventListener("click", () => {
+// Redo the most recently undone command
+function redo_command(): void {
   const last_command = undo_commands.pop();
 
   if (last_command) {
     document_commands.push(last_command);
-    redraw();
-    update_history_buttons();
+    refresh_display();
   }
+}
+
+// Clear all committed drawing commands and history
+function clear_commands(): void {
+  document_commands.length = 0;
+  undo_commands.length = 0;
+
+  refresh_display();
+}
+
+// undo the most recent completed stroke
+undo_button.addEventListener("click", () => {
+  undo_command();
+});
+
+// redo the most recent undone stroke
+redo_button.addEventListener("click", () => {
+  redo_command();
 });
 
 // clear all drawing commands and reset history
@@ -384,11 +415,7 @@ clear_button.addEventListener("click", () => {
     canvas.releasePointerCapture(pointer_id);
   }
 
-  document_commands.length = 0;
-  undo_commands.length = 0;
-
-  redraw();
-  update_history_buttons();
+  clear_commands();
 });
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -409,11 +436,7 @@ canvas.addEventListener("pointerdown", (event) => {
       size: selected_tool.size,
     };
 
-    document_commands.push(sticker);
-    undo_commands.length = 0;
-
-    redraw();
-    update_history_buttons();
+    commit_command(sticker);
     return;
   }
 
@@ -442,15 +465,12 @@ canvas.addEventListener("pointerup", (event) => {
     return;
   }
 
-  document_commands.push(active_stroke);
+  const completed_stroke = active_stroke;
+
   active_stroke = null;
   active_pointer_id = null;
 
-  // new committed drawing clears redo history
-  undo_commands.length = 0;
-
-  redraw();
-  update_history_buttons();
+  commit_command(completed_stroke);
 });
 
 // discard cancelled strokes without changing history
