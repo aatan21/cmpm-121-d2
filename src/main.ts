@@ -16,6 +16,8 @@ canvas.style.border = "2px solid black";
 canvas.style.backgroundColor = "white";
 canvas.style.display = "block";
 canvas.style.touchAction = "none";
+canvas.style.width = "min(100%, 700px)";
+canvas.style.height = "auto";
 app.appendChild(canvas);
 
 const context = canvas.getContext("2d")!;
@@ -141,10 +143,10 @@ function update_tools(): void {
 
 //create UI for custom made user tools
 const tool_name_input = document.createElement("input");
-tool_name_input.ariaPlaceholder = "Tool name";
+tool_name_input.placeholder = "Tool name";
 
 const tool_symbol_input = document.createElement("input");
-tool_symbol_input.ariaPlaceholder = "Emoji/Text";
+tool_symbol_input.placeholder = "Emoji/Text";
 
 const create_tool_button = document.createElement("button");
 create_tool_button.textContent = "Create Tool";
@@ -194,8 +196,10 @@ function get_point(event: PointerEvent): Point {
   const rect = canvas.getBoundingClientRect();
 
   return {
-    x: (event.clientX - rect.left) * canvas_width / rect.width,
-    y: (event.clientY - rect.top) * canvas_height / rect.height,
+    x: (event.clientX - rect.left - canvas.clientLeft) *
+      canvas_width / canvas.clientWidth,
+    y: (event.clientY - rect.top - canvas.clientTop) *
+      canvas_height / canvas.clientHeight,
   };
 }
 
@@ -329,6 +333,11 @@ const redo_button = document.createElement("button");
 redo_button.textContent = "Redo";
 app.appendChild(redo_button);
 
+// create clear button
+const clear_button = document.createElement("button");
+clear_button.textContent = "Clear";
+app.appendChild(clear_button);
+
 // disable buttons when no actions are available
 function update_history_buttons(): void {
   undo_button.disabled = document_commands.length === 0;
@@ -355,6 +364,31 @@ redo_button.addEventListener("click", () => {
     redraw();
     update_history_buttons();
   }
+});
+
+// clear all drawing commands and reset history
+clear_button.addEventListener("click", () => {
+  if (
+    document_commands.length === 0 &&
+    undo_commands.length === 0 &&
+    !active_stroke
+  ) {
+    return;
+  }
+
+  const pointer_id = active_pointer_id;
+  active_stroke = null;
+  active_pointer_id = null;
+
+  if (pointer_id !== null && canvas.hasPointerCapture(pointer_id)) {
+    canvas.releasePointerCapture(pointer_id);
+  }
+
+  document_commands.length = 0;
+  undo_commands.length = 0;
+
+  redraw();
+  update_history_buttons();
 });
 
 canvas.addEventListener("pointerdown", (event) => {
